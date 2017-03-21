@@ -1,0 +1,34 @@
+{
+  "title": "Auth0 Logs to Azure Log Analytics",
+  "name": "auth0-logs-to-log-analytics",
+  "version": "1.0.0",
+  "author": "ealsur",
+  "description": "This extension will take all of your Auth0 logs and export them to Azure Log Analytics",
+  "type": "cron",
+  "keywords": [
+    "auth0",
+    "extension"
+  ],
+  "schedule": "0 */5 * * * *",
+  "auth0": {
+    "scopes": "read:logs"
+  },
+  "secrets": {
+    "BATCH_SIZE": {
+      "description": "The ammount of logs to be read on each execution. Maximun is 100.",
+      "default": 100
+    },
+    "LOGANALYTICS_WORKSPACEID": {
+      "description": "Azure Log Analytics Workspace ID.",
+      "required": true
+    },
+    "LOGANALYTICS_APIID": {
+      "description": "Azure Log Analytics API ID.",
+      "required": true
+    },
+    "LOGANALYTICS_NAMESPACE": {
+      "description": "Azure Log Analytics Namespace, identifies your application or source.",
+      "required": true
+    }
+  }
+}
