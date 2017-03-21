@@ -56,8 +56,16 @@ function lastLogCheckpoint (req, res) {
     return res.status(400).send({ message: 'Auth0 API v1 credentials or domain missing.' });
   }
 
-  if (!ctx.data.APPINSIGHTS_INSTRUMENTATIONKEY) {
-    return res.status(400).send({ message: 'Application Insights instrumentation key is missing.' });
+  if (!ctx.data.LOGANALYTICS_WORKSPACEID) {
+    return res.status(400).send({ message: 'Azure Log Analytics Workspace ID missing.' });
+  }
+
+  if (!ctx.data.LOGANALYTICS_APIID) {
+    return res.status(400).send({ message: 'Azure Log Analytics API ID missing.' });
+  }
+
+  if (!ctx.data.LOGANALYTICS_NAMESPACE) {
+    return res.status(400).send({ message: 'Azure Log Analytics Namespace missing.' });
   }
 
   req.webtaskContext.storage.get((err, data) => {
@@ -67,7 +75,7 @@ function lastLogCheckpoint (req, res) {
      */
     console.log('Starting from:', checkpointId);
 
-    const client = getClient(ctx.data.APPINSIGHTS_INSTRUMENTATIONKEY);
+    const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_APIID, ctx.data.LOGANALYTICS_NAMESPACE);
     client.commonProperties = {
       auth0_domain: ctx.data.AUTH0_DOMAIN
     };
@@ -96,10 +104,7 @@ function lastLogCheckpoint (req, res) {
 
 	        if (result && result.length > 0) {
 	          result.forEach(function (log) {
-	            // Application Insights does not allow you to send very old logs, so we'll only send the logs of the last 48 hours max.
-	            if (log.date && moment().diff(moment(log.date), 'hours') < 48) {
-	              logs.push(log);
-	            }
+              logs.push(log);	            
 	          });
 
 	          console.log('Retrieved ' + logs.length + ' logs from Auth0 after ' + checkPoint + '.');
@@ -115,10 +120,10 @@ function lastLogCheckpoint (req, res) {
     };
 
     /*
-     * Export the logs to Application Insights.
+     * Export the logs to Azure Log Analytics
      */
     const exportLogs = (logs, callback) => {
-      console.log('Exporting logs to Application Insights: ' + logs.length);
+      console.log('Exporting logs to Azure Log Analytics: ' + logs.length);
 
       logs.forEach(function(record) {
         var level = 0;
@@ -128,25 +133,9 @@ function lastLogCheckpoint (req, res) {
           record.type = logTypes[record.type].event;
         }
 
-        // Application Insights does not like null or empty strings.
-        if (!record.ip || record.ip === '') delete record.ip;
-        if (!record.user_id || record.user_id === '')  delete record.user_id;
-        if (!record.user_name || record.user_name === '')  delete record.user_name;
-        if (!record.connection || record.connection === '')  delete record.connection;
-        if (!record.client_name || record.client_name === '') delete record.client_name;
-        if (!record.description || record.description === '')  delete record.description;
-
-        // Application Insights does not like booleans.
-        record.isMobile = record.isMobile && 'yes' || 'no';
-
-        // Application Insights does not like objects.
-        if (record.details) {
-          record.details = JSON.stringify(record.details, null, 2);
-        }
-
-        // Application Insights does not like login strings.
-        if (record.details && record.details.length > 8185) {
-          record.details = record.details.substring(0, 8185) + '...';
+        // Azure Log Analytics maximun length.
+        if (record.details && record.details.length > 32000) {
+          record.details = record.details.substring(0, 32000) + '...';
         }
 
         var agent = useragent.parse(record.user_agent);
@@ -155,7 +144,7 @@ function lastLogCheckpoint (req, res) {
         record.device = agent.device.toString();
         record.device_version = agent.device.toVersion();
 
-        // Don't show "Generic Smartphone" in Application Insightis.
+        // Don't show "Generic Smartphone".
         if (record.device && record.device.indexOf('Generic Smartphone') >= 0) {
           record.device = agent.os.toString();
           record.device_version = agent.os.toVersion();
