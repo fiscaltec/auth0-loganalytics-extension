@@ -1,7 +1,6 @@
 "use latest";
 
 const useragent = require('useragent');
-const moment    = require('moment');
 const express   = require('express');
 const Webtask   = require('webtask-tools');
 const app       = express();
@@ -9,42 +8,11 @@ const Request   = require('request');
 const memoizer  = require('lru-memoizer');
 
 /*
- * Get the application insights client.
+ * Get the client for Azure Log Analytics.
  */
-const getClient = (key) => {
-  const appInsights = require('applicationinsights');
-  const client = appInsights.getClient(key);
-
-  // Override the original getEnvelope method to allow setting a custom time.
-  const originalGetEnvelope = client.getEnvelope;
-  client.getEnvelope = (data, tagOverrides) => {
-    let envelope = originalGetEnvelope.apply(client, [data, tagOverrides]);
-    envelope.time = data.baseData.properties.date;
-    envelope.os = data.baseData.properties.os;
-    envelope.osVer = data.baseData.properties.os_version;
-    envelope.tags['ai.device.id'] = data.baseData.properties.device;
-    envelope.tags['ai.device.machineName'] = '';
-    envelope.tags['ai.device.type'] = 'mobile:' + data.baseData.properties.isMobile;
-    envelope.tags['ai.device.os'] = data.baseData.properties.os;
-    envelope.tags['ai.device.osVersion'] = data.baseData.properties.os_version;
-    envelope.tags['ai.device.osArchitecture'] = '';
-    envelope.tags['ai.device.osPlatform'] = data.baseData.properties.os;
-
-    if (data.baseData.properties.ip) {
-      envelope.tags['ai.location.ip'] = data.baseData.properties.ip;
-    }
-
-    if (data.baseData.properties.user_id || data.baseData.properties.user_name) {
-      envelope.tags['ai.user.id'] = data.baseData.properties.user_id || data.baseData.properties.user_name;
-      envelope.tags['ai.user.accountId'] = data.baseData.properties.user_id || data.baseData.properties.user_name;
-      envelope.tags['ai.user.authUserId'] = data.baseData.properties.user_id || data.baseData.properties.user_name;
-    }
-
-    if (data.baseData.properties.user_agent) {
-      envelope.tags['ai.user.userAgent'] = data.baseData.properties.user_agent;
-    }
-    return envelope;
-  };
+const getClient = (workspaceId, apiId, namespace, apiVersion) => {
+  apiVersion = apiVersion || '2016-04-01';
+  
 
   return client;
 };
@@ -75,7 +43,7 @@ function lastLogCheckpoint (req, res) {
      */
     console.log('Starting from:', checkpointId);
 
-    const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_APIID, ctx.data.LOGANALYTICS_NAMESPACE);
+    const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_APIID, ctx.data.LOGANALYTICS_NAMESPACE, ctx.data.LOGANALYTICS_APIVERSION);
     client.commonProperties = {
       auth0_domain: ctx.data.AUTH0_DOMAIN
     };

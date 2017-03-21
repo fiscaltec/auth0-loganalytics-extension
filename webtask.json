@@ -29,6 +29,10 @@
     "LOGANALYTICS_NAMESPACE": {
       "description": "Azure Log Analytics Namespace, identifies your application or source.",
       "required": true
+    },
+    "LOGANALYTICS_APIVERSION": {
+      "description": "Azure Log Analytics API version, defaults to latest.",
+      "required": false
     }
   }
 }
