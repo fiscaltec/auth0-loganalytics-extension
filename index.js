@@ -11,16 +11,16 @@ const crypto = require('crypto');
 /*
  * Get the client for Azure Log Analytics.
  */
-const getClient = (workspaceId, apiId, namespace, apiVersion) => {
+const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
   apiVersion = apiVersion || '2016-04-01';
   let url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
   let logs = [];
-  let hashKey = Buffer.from(apiId, 'base64');
+  let hashKey = Buffer.from(workspaceKey, 'base64');
   let hash = function(method, contentLength, contentType, date, resource){
       /* Create the hash for the request */
       var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
       let stringHash = crypto.createHmac('sha256', hashkey).update(stringtoHash).digest('base64');
-      return "SharedKey " + apiId + ":" + stringHash;
+      return "SharedKey " + workspaceKey + ":" + stringHash;
   };
   return {
     addEvent:function(o){
@@ -72,8 +72,8 @@ function lastLogCheckpoint (req, res) {
     return res.status(400).send({ message: 'Azure Log Analytics Workspace ID missing.' });
   }
 
-  if (!ctx.data.LOGANALYTICS_APIID) {
-    return res.status(400).send({ message: 'Azure Log Analytics API ID missing.' });
+  if (!ctx.data.LOGANALYTICS_WORKSPACEKEY) {
+    return res.status(400).send({ message: 'Azure Log Analytics Workspace Key missing.' });
   }
 
   if (!ctx.data.LOGANALYTICS_NAMESPACE) {
@@ -87,7 +87,7 @@ function lastLogCheckpoint (req, res) {
      */
     console.log('Starting from:', checkpointId);
 
-    const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_APIID, ctx.data.LOGANALYTICS_NAMESPACE, ctx.data.LOGANALYTICS_APIVERSION);
+    const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_WORKSPACEKEY, ctx.data.LOGANALYTICS_NAMESPACE, ctx.data.LOGANALYTICS_APIVERSION);
     
     /*
      * Test authenticating with the Auth0 API.

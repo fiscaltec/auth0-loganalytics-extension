@@ -22,8 +22,8 @@
       "description": "Azure Log Analytics Workspace ID.",
       "required": true
     },
-    "LOGANALYTICS_APIID": {
-      "description": "Azure Log Analytics API ID.",
+    "LOGANALYTICS_WORKSPACEKEY": {
+      "description": "Azure Log Analytics Workspace Key.",
       "required": true
     },
     "LOGANALYTICS_NAMESPACE": {
