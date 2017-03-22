@@ -4,17 +4,61 @@ const useragent = require('useragent');
 const express   = require('express');
 const Webtask   = require('webtask-tools');
 const app       = express();
-const Request   = require('request');
+const request   = require('request');
 const memoizer  = require('lru-memoizer');
+const crypto = require('crypto');
 
 /*
  * Get the client for Azure Log Analytics.
  */
 const getClient = (workspaceId, apiId, namespace, apiVersion) => {
   apiVersion = apiVersion || '2016-04-01';
-  
+  let url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
+  let logs = [];
+  let hashKey = Buffer.from(apiId, 'base64');
+  let hash = function(method, contentLength, contentType, date, resource){
+      /* Create the hash for the request */
+      var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
+      let stringHash = crypto.createHmac('sha256', hashkey).update(stringtoHash).digest('base64');
+      return "SharedKey " + apiId + ":" + stringHash;
+  };
+  return {
+    addEvent:function(o){
+      logs.push(o);
+    },
+    pushAllRecords:function(){
+      if(logs.length == 0){
+        return;
+      }
+      var UTCstring = (new Date()).toUTCString();
+      var payload = JSON.stringify(logs);
+      var promise = new Promise(function(resolve,reject){
+          var signature = hash("POST", payload.length, "application/json", UTCstring, "/api/logs");
+          var options = {
+              url: url,
+              method: 'POST',
+              headers: {
+                  'Content-Type':'application/json;charset=utf-8',
+                  'Log-Type':namespace,
+                  'x-ms-date':UTCstring,
+                  'Authorization':signature,
+                  'time-generated-field':'date'
+              },
+              json:logs
+          }
+          request(options, function (error, response, body) {
+            if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
+                resolve(logs.length);
+            }
+            else{
+              reject();
+            }
+        })
 
-  return client;
+      });      
+      return promise;
+    }
+  };
 };
 
 function lastLogCheckpoint (req, res) {
@@ -44,10 +88,7 @@ function lastLogCheckpoint (req, res) {
     console.log('Starting from:', checkpointId);
 
     const client = getClient(ctx.data.LOGANALYTICS_WORKSPACEID, ctx.data.LOGANALYTICS_APIID, ctx.data.LOGANALYTICS_NAMESPACE, ctx.data.LOGANALYTICS_APIVERSION);
-    client.commonProperties = {
-      auth0_domain: ctx.data.AUTH0_DOMAIN
-    };
-
+    
     /*
      * Test authenticating with the Auth0 API.
      */
@@ -117,27 +158,13 @@ function lastLogCheckpoint (req, res) {
           record.device = agent.os.toString();
           record.device_version = agent.os.toVersion();
         }
-
-        if (level >= 3) {
-          var error = new Error(record.type);
-          error.name = record.type;
-          client.trackException(error, record);
-        }
-
-        client.trackEvent(record.type, record);
+        client.addRecord(record);
       });
-
-      if (logs && logs.length) {
-        console.log('Flushing all data...');
-
-        client.sendPendingData((response) => {
-          return callback(null, response);
-        });
-      } else {
-        console.log('No data to flush...');
-
-        return callback(null, '{ "itemsAccepted": 0 }');
-      }
+      client.pushAllRecords().then(function(sent){
+        return callback(null, '{ "itemsAccepted": '+sent+' }');  
+      });
+      
+      
     };
 
     /*
