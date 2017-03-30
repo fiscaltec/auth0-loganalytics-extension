@@ -460,7 +460,7 @@ module.exports =
 	function getLogsFromAuth0(domain, token, take, from, cb) {
 	  var url = 'https://' + domain + '/api/v2/logs';
 
-	  Request({
+	  request({
 	    method: 'GET',
 	    url: url,
 	    json: true,
@@ -486,7 +486,7 @@ module.exports =
 
 	var getTokenCached = memoizer({
 	  load: function load(apiUrl, audience, clientId, clientSecret, cb) {
-	    Request({
+	    request({
 	      method: 'POST',
 	      url: apiUrl,
 	      json: true,
