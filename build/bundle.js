@@ -67,7 +67,12 @@ module.exports =
 	  apiVersion = apiVersion || '2016-04-01';
 	  var url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
 	  var logs = [];
-	  var hashKey = Buffer.from(workspaceKey, 'base64');
+	  var hashKey = null;
+	  if (typeof Buffer.from === "function") {
+	    buf = Buffer.from(workspaceKey, 'base64');
+	  } else {
+	    buf = new Buffer(workspaceKey, 'base64');
+	  }
 	  var hash = function hash(method, contentLength, contentType, date, resource) {
 	    /* Create the hash for the request */
 	    var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
