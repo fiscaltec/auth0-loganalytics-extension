@@ -4,7 +4,7 @@ const useragent = require('useragent');
 const express   = require('express');
 const Webtask   = require('webtask-tools');
 const app       = express();
-const request   = require('request');
+const request   = require('request').debug = true;
 const memoizer  = require('lru-memoizer');
 const crypto = require('crypto');
 
@@ -45,7 +45,7 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
                   'Authorization':signature,
                   'time-generated-field':'date'
               },
-              body:payload              
+              data:payload              
           }
           request(options, function (error, response, body) {
             if (!error && (response.statusCode == 200 || response.statusCode == 202)) {

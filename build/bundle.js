@@ -56,7 +56,7 @@ module.exports =
 	var express = __webpack_require__(4);
 	var Webtask = __webpack_require__(5);
 	var app = express();
-	var request = __webpack_require__(15);
+	var request = __webpack_require__(15).debug = true;
 	var memoizer = __webpack_require__(16);
 	var crypto = __webpack_require__(17);
 
@@ -97,7 +97,7 @@ module.exports =
 	            'Authorization': signature,
 	            'time-generated-field': 'date'
 	          },
-	          body: payload
+	          data: payload
 	        };
 	        request(options, function (error, response, body) {
 	          if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
