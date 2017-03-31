@@ -76,7 +76,7 @@ module.exports =
 	    return "SharedKey " + workspaceKey + ":" + stringHash;
 	  };
 	  return {
-	    addEvent: function addEvent(o) {
+	    addRecord: function addRecord(o) {
 	      logs.push(o);
 	    },
 	    pushAllRecords: function pushAllRecords() {

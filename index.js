@@ -24,7 +24,7 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
       return "SharedKey " + workspaceKey + ":" + stringHash;
   };
   return {
-    addEvent:function(o){
+    addRecord:function(o){
       logs.push(o);
     },
     pushAllRecords:function(){
