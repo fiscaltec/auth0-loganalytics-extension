@@ -56,7 +56,7 @@ module.exports =
 	var express = __webpack_require__(4);
 	var Webtask = __webpack_require__(5);
 	var app = express();
-	var request = __webpack_require__(15).debug = true;
+	var request = __webpack_require__(15);
 	var memoizer = __webpack_require__(16);
 	var crypto = __webpack_require__(17);
 
@@ -99,6 +99,7 @@ module.exports =
 	          },
 	          data: payload
 	        };
+	        request.debug = true;
 	        request(options, function (error, response, body) {
 	          if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
 	            resolve(logs.length);
@@ -460,7 +461,7 @@ module.exports =
 
 	function getLogsFromAuth0(domain, token, take, from, cb) {
 	  var url = 'https://' + domain + '/api/v2/logs';
-
+	  request.debug = true;
 	  request({
 	    method: 'GET',
 	    url: url,

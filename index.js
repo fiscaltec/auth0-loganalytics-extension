@@ -4,7 +4,7 @@ const useragent = require('useragent');
 const express   = require('express');
 const Webtask   = require('webtask-tools');
 const app       = express();
-const request   = require('request').debug = true;
+const request   = require('request');
 const memoizer  = require('lru-memoizer');
 const crypto = require('crypto');
 
@@ -47,6 +47,7 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
               },
               data:payload              
           }
+          request.debug = true;
           request(options, function (error, response, body) {
             if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
                 resolve(logs.length);
@@ -419,7 +420,7 @@ const logTypes = {
 
 function getLogsFromAuth0 (domain, token, take, from, cb) {
   var url = `https://${domain}/api/v2/logs`;
-
+request.debug = true;
   request({
     method: 'GET',
     url: url,
