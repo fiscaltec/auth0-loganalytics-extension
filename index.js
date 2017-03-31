@@ -15,12 +15,8 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
   apiVersion = apiVersion || '2016-04-01';
   let url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
   let logs = [];
-  let hashKey = null;
-  if (typeof Buffer.from === "function") {
-      hashKey = Buffer.from(workspaceKey, 'base64'); 
-  } else {
-      hashKey = new Buffer(workspaceKey, 'base64'); 
-  }
+  let hashKey = new Buffer(workspaceKey, 'base64'); 
+  
   let hash = function(method, contentLength, contentType, date, resource){
       /* Create the hash for the request */
       var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
