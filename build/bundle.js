@@ -69,9 +69,9 @@ module.exports =
 	  var logs = [];
 	  var hashKey = null;
 	  if (typeof Buffer.from === "function") {
-	    buf = Buffer.from(workspaceKey, 'base64');
+	    hashKey = Buffer.from(workspaceKey, 'base64');
 	  } else {
-	    buf = new Buffer(workspaceKey, 'base64');
+	    hashKey = new Buffer(workspaceKey, 'base64');
 	  }
 	  var hash = function hash(method, contentLength, contentType, date, resource) {
 	    /* Create the hash for the request */
