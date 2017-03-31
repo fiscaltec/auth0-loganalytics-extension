@@ -45,10 +45,8 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
                   'Authorization':signature,
                   'time-generated-field':'date'
               },
-              json:logs
+              body:payload              
           }
-          console.log('Attempting to send payload to Azure Log Analytics...');
-          console.log(logs.length);
           request(options, function (error, response, body) {
             if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
                 resolve(logs.length);
@@ -115,9 +113,7 @@ function lastLogCheckpoint (req, res) {
 	        }
 
 	        if (result && result.length > 0) {
-            console.log('Received logs from Auth0...');
-            console.log(result.length);
-	          result.forEach(function (log) {
+            result.forEach(function (log) {
               logs.push(log);	            
 	          });
 
