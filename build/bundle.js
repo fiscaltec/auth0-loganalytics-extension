@@ -99,14 +99,15 @@ module.exports =
 	          },
 	          data: payload
 	        };
-	        request.debug = true;
-	        request(options, function (error, response, body) {
-	          if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
-	            resolve(logs.length);
-	          } else {
-	            reject();
-	          }
-	        });
+	        resolve(logs.length);
+	        //   request(options, function (error, response, body) {
+	        //     if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
+	        //         resolve(logs.length);
+	        //     }
+	        //     else{
+	        //       reject();
+	        //     }
+	        // });
 	      });
 	      return promise;
 	    }
@@ -461,7 +462,7 @@ module.exports =
 
 	function getLogsFromAuth0(domain, token, take, from, cb) {
 	  var url = 'https://' + domain + '/api/v2/logs';
-	  request.debug = true;
+
 	  request({
 	    method: 'GET',
 	    url: url,

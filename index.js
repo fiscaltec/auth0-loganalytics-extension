@@ -19,7 +19,7 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
   
   let hash = function(method, contentLength, contentType, date, resource){
       /* Create the hash for the request */
-      var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
+      let stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
       let stringHash = crypto.createHmac('sha256', hashkey).update(stringtoHash).digest('base64');
       return "SharedKey " + workspaceKey + ":" + stringHash;
   };
@@ -31,11 +31,11 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
       if(logs.length == 0){
         return;
       }
-      var UTCstring = (new Date()).toUTCString();
-      var payload = JSON.stringify(logs);
-      var promise = new Promise(function(resolve,reject){
-          var signature = hash("POST", payload.length, "application/json", UTCstring, "/api/logs");
-          var options = {
+      let UTCstring = (new Date()).toUTCString();
+      let payload = JSON.stringify(logs);
+      let promise = new Promise(function(resolve,reject){
+          let signature = hash("POST", payload.length, "application/json", UTCstring, "/api/logs");
+          let options = {
               url: url,
               method: 'POST',
               headers: {
@@ -46,16 +46,16 @@ const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
                   'time-generated-field':'date'
               },
               data:payload              
-          }
-          request.debug = true;
-          request(options, function (error, response, body) {
-            if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
-                resolve(logs.length);
-            }
-            else{
-              reject();
-            }
-        })
+          };
+          resolve(logs.length);
+        //   request(options, function (error, response, body) {
+        //     if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
+        //         resolve(logs.length);
+        //     }
+        //     else{
+        //       reject();
+        //     }
+        // });
 
       });      
       return promise;
@@ -137,7 +137,7 @@ function lastLogCheckpoint (req, res) {
       console.log('Exporting logs to Azure Log Analytics: ' + logs.length);
 
       logs.forEach(function(record) {
-        var level = 0;
+        let level = 0;
         record.type_code = record.type;
         if (logTypes[record.type]) {
           level = logTypes[record.type].level;
@@ -149,7 +149,7 @@ function lastLogCheckpoint (req, res) {
           record.details = record.details.substring(0, 32000) + '...';
         }
 
-        var agent = useragent.parse(record.user_agent);
+        let agent = useragent.parse(record.user_agent);
         record.os = agent.os.toString();
         record.os_version = agent.os.toVersion();
         record.device = agent.device.toString();
@@ -419,8 +419,8 @@ const logTypes = {
 };
 
 function getLogsFromAuth0 (domain, token, take, from, cb) {
-  var url = `https://${domain}/api/v2/logs`;
-request.debug = true;
+  let url = `https://${domain}/api/v2/logs`;
+
   request({
     method: 'GET',
     url: url,
@@ -471,10 +471,10 @@ const getTokenCached = memoizer({
 });
 
 app.use(function (req, res, next) {
-  var apiUrl       = `https://${req.webtaskContext.data.AUTH0_DOMAIN}/oauth/token`;
-  var audience     = `https://${req.webtaskContext.data.AUTH0_DOMAIN}/api/v2/`;
-  var clientId     = req.webtaskContext.data.AUTH0_CLIENT_ID;
-  var clientSecret = req.webtaskContext.data.AUTH0_CLIENT_SECRET;
+  let apiUrl       = `https://${req.webtaskContext.data.AUTH0_DOMAIN}/oauth/token`;
+  let audience     = `https://${req.webtaskContext.data.AUTH0_DOMAIN}/api/v2/`;
+  let clientId     = req.webtaskContext.data.AUTH0_CLIENT_ID;
+  let clientSecret = req.webtaskContext.data.AUTH0_CLIENT_SECRET;
 
   getTokenCached(apiUrl, audience, clientId, clientSecret, function (access_token, err) {
     if (err) {
