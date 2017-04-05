@@ -67,47 +67,38 @@ module.exports =
 	  apiVersion = apiVersion || '2016-04-01';
 	  var url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
 	  var logs = [];
-	  var hashKey = new Buffer(workspaceKey, 'base64');
-
+	  var key = new Buffer(workspaceKey, "base64");
+	  var UTCstring = new Date().toUTCString();
 	  var hash = function hash(method, contentLength, contentType, date, resource) {
 	    /* Create the hash for the request */
 	    var stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
-	    var stringHash = crypto.createHmac('sha256', hashkey).update(stringtoHash).digest('base64');
-	    return "SharedKey " + workspaceKey + ":" + stringHash;
+	    var stringHash = crypto.createHmac('sha256', key).update(stringtoHash).digest('base64');
+	    return "SharedKey " + workspaceId + ":" + stringHash;
 	  };
 	  return {
-	    addRecord: function addRecord(o) {
-	      logs.push(o);
-	    },
-	    pushAllRecords: function pushAllRecords() {
-	      if (logs.length == 0) {
-	        return;
-	      }
-	      var UTCstring = new Date().toUTCString();
-	      var payload = JSON.stringify(logs);
+	    pushRecord: function pushRecord(log, index) {
+	      var payload = JSON.stringify(log);
 	      var promise = new Promise(function (resolve, reject) {
 	        var signature = hash("POST", payload.length, "application/json", UTCstring, "/api/logs");
 	        var options = {
 	          url: url,
 	          method: 'POST',
 	          headers: {
-	            'Content-Type': 'application/json;charset=utf-8',
+	            'Content-Type': 'application/json',
 	            'Log-Type': namespace,
 	            'x-ms-date': UTCstring,
 	            'Authorization': signature,
 	            'time-generated-field': 'date'
 	          },
-	          data: payload
+	          body: payload
 	        };
-	        resolve(logs.length);
-	        //   request(options, function (error, response, body) {
-	        //     if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
-	        //         resolve(logs.length);
-	        //     }
-	        //     else{
-	        //       reject();
-	        //     }
-	        // });
+	        request(options, function (error, response, body) {
+	          if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
+	            resolve(index + 1);
+	          } else {
+	            reject();
+	          }
+	        });
 	      });
 	      return promise;
 	    }
@@ -154,7 +145,7 @@ module.exports =
 	     */
 	    var logs = [];
 	    var getLogs = function getLogs(checkPoint, callback) {
-	      var take = Number.parseInt(ctx.data.BATCH_SIZE);
+	      var take = Number.parseInt(ctx.data.BATCH_SIZE || 100);
 
 	      take = take > 100 ? 100 : take;
 
@@ -186,8 +177,10 @@ module.exports =
 	     */
 	    var exportLogs = function exportLogs(logs, callback) {
 	      console.log('Exporting logs to Azure Log Analytics: ' + logs.length);
+	      var p = Promise.resolve(0);
 
-	      logs.forEach(function (record) {
+	      var _loop = function _loop(i, len) {
+	        var record = logs[i];
 	        var level = 0;
 	        record.type_code = record.type;
 	        if (logTypes[record.type]) {
@@ -211,11 +204,18 @@ module.exports =
 	          record.device = agent.os.toString();
 	          record.device_version = agent.os.toVersion();
 	        }
-	        client.addRecord(record);
-	      });
-	      client.pushAllRecords().then(function (sent) {
-	        return callback(null, '{ "itemsAccepted": ' + sent + ' }');
-	      });
+	        //Will try to send each record separately, if one fails, it will continue with the other
+	        p = p.then(function () {
+	          return client.pushRecord(record, i);
+	        }).catch(function () {
+	          return Promise.resolve(0);
+	        });
+	      };
+
+	      for (var i = 0, len = logs.length; i < len; i++) {
+	        _loop(i, len);
+	      };
+	      return callback(null, '{ "itemsAccepted": ' + logs.length + ' }');
 	    };
 
 	    /*
@@ -462,7 +462,6 @@ module.exports =
 
 	function getLogsFromAuth0(domain, token, take, from, cb) {
 	  var url = 'https://' + domain + '/api/v2/logs';
-
 	  request({
 	    method: 'GET',
 	    url: url,

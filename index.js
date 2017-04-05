@@ -13,49 +13,41 @@ const crypto = require('crypto');
  */
 const getClient = (workspaceId, workspaceKey, namespace, apiVersion) => {
   apiVersion = apiVersion || '2016-04-01';
-  let url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
+  const url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=" + apiVersion;
   let logs = [];
-  let hashKey = new Buffer(workspaceKey, 'base64'); 
-  
-  let hash = function(method, contentLength, contentType, date, resource){
+  const key = new Buffer(workspaceKey, "base64");
+  const UTCstring = (new Date()).toUTCString();
+  const hash = function(method, contentLength, contentType, date, resource){
       /* Create the hash for the request */
       let stringtoHash = method + "\n" + contentLength + "\n" + contentType + "\nx-ms-date:" + date + "\n" + resource;
-      let stringHash = crypto.createHmac('sha256', hashkey).update(stringtoHash).digest('base64');
-      return "SharedKey " + workspaceKey + ":" + stringHash;
+      let stringHash = crypto.createHmac('sha256', key).update(stringtoHash).digest('base64');
+      return "SharedKey " + workspaceId + ":" + stringHash;
   };
   return {
-    addRecord:function(o){
-      logs.push(o);
-    },
-    pushAllRecords:function(){
-      if(logs.length == 0){
-        return;
-      }
-      let UTCstring = (new Date()).toUTCString();
-      let payload = JSON.stringify(logs);
+    pushRecord: function(log, index){
+      let payload = JSON.stringify(log);
       let promise = new Promise(function(resolve,reject){
           let signature = hash("POST", payload.length, "application/json", UTCstring, "/api/logs");
           let options = {
               url: url,
               method: 'POST',
               headers: {
-                  'Content-Type':'application/json;charset=utf-8',
+                  'Content-Type':'application/json',
                   'Log-Type':namespace,
                   'x-ms-date':UTCstring,
                   'Authorization':signature,
                   'time-generated-field':'date'
               },
-              data:payload              
+              body:payload              
           };
-          resolve(logs.length);
-        //   request(options, function (error, response, body) {
-        //     if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
-        //         resolve(logs.length);
-        //     }
-        //     else{
-        //       reject();
-        //     }
-        // });
+          request(options, function (error, response, body) {
+            if (!error && (response.statusCode == 200 || response.statusCode == 202)) {
+                resolve(index+1);
+            }
+            else{
+              reject();
+            }
+        });
 
       });      
       return promise;
@@ -103,7 +95,7 @@ function lastLogCheckpoint (req, res) {
      */
     const logs = [];
     const getLogs = (checkPoint, callback) => {
-      let take = Number.parseInt(ctx.data.BATCH_SIZE);
+      let take = Number.parseInt(ctx.data.BATCH_SIZE || 100);
 
       take = take > 100 ? 100 : take;
 
@@ -135,8 +127,9 @@ function lastLogCheckpoint (req, res) {
      */
     const exportLogs = (logs, callback) => {
       console.log('Exporting logs to Azure Log Analytics: ' + logs.length);
-
-      logs.forEach(function(record) {
+      var p = Promise.resolve(0);
+      for(let i = 0, len=logs.length;i<len;i++){
+        let record = logs[i];
         let level = 0;
         record.type_code = record.type;
         if (logTypes[record.type]) {
@@ -160,12 +153,11 @@ function lastLogCheckpoint (req, res) {
           record.device = agent.os.toString();
           record.device_version = agent.os.toVersion();
         }
-        client.addRecord(record);
-      });
-      client.pushAllRecords().then(function(sent){
-        return callback(null, '{ "itemsAccepted": '+sent+' }');  
-      });
-      
+        //Will try to send each record separately, if one fails, it will continue with the other
+        p = p.then(()=>client.pushRecord(record,i)).catch(()=>Promise.resolve(0));
+        
+      };
+      return callback(null, '{ "itemsAccepted": '+logs.length+' }');  
       
     };
 
@@ -420,7 +412,6 @@ const logTypes = {
 
 function getLogsFromAuth0 (domain, token, take, from, cb) {
   let url = `https://${domain}/api/v2/logs`;
-
   request({
     method: 'GET',
     url: url,
