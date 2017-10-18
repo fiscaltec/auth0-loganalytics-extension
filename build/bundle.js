@@ -1136,7 +1136,7 @@ module.exports =
 	    }
 	    routingInfo.appPath = '/' + segments.join('/');
 	    routingInfo.baseUrl = [
-	        req.headers['x-forwarded-proto'] || 'https',
+	        req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'].split(',')[0].trim() : 'https',
 	        '://',
 	        req.headers.host,
 	        routingInfo.basePath
