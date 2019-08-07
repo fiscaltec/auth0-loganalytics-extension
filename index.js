@@ -7,6 +7,7 @@ const app       = express();
 const request   = require('request');
 const memoizer  = require('lru-memoizer');
 const crypto = require('crypto');
+const metadata = require('webtask.json');
 
 /*
  * Get the client for Azure Log Analytics.
@@ -480,5 +481,9 @@ app.use(function (req, res, next) {
 
 app.get ('/', lastLogCheckpoint);
 app.post('/', lastLogCheckpoint);
+
+api.get('/', (req, res) => {
+  res.status(200).send(metadata);
+});
 
 module.exports = Webtask.fromExpress(app);
